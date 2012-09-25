@@ -13,7 +13,7 @@ namespace Snowcode.S3BuildPublisher.Client
         private const string DefaultRegistryKey = "Software\\SnowCode\\S3BuildPublisher";
         private const string AccessKeyIdKeyName = "AwsAccessKeyId";
         private const string SecretAccessKeyKeyName = "AwsSecretAccessKey";
-
+    	private RegistryKey Key = null;
         #endregion
 
         #region Constructors
@@ -25,6 +25,8 @@ namespace Snowcode.S3BuildPublisher.Client
         public ClientDetailsStore(string registrySubKey)
         {
             RegistrySubKey = registrySubKey;
+        	//Key = Registry.CurrentUser;
+        	Key = Registry.LocalMachine;
         }
 
         #endregion
@@ -46,7 +48,7 @@ namespace Snowcode.S3BuildPublisher.Client
 
             CreateSubKeyIfNotExists();
 
-            using (var registryKey = Registry.CurrentUser.OpenSubKey(RegistrySubKey, true))
+            using (var registryKey = Key.OpenSubKey(RegistrySubKey, true))
             {
                 if (registryKey == null)
                 {
@@ -65,7 +67,7 @@ namespace Snowcode.S3BuildPublisher.Client
         /// <returns>Aws Client Details</returns>
         public AwsClientDetails Load(string containerName)
         {
-            using (RegistryKey registryKey = Registry.CurrentUser.OpenSubKey(RegistrySubKey))
+            using (RegistryKey registryKey = Key.OpenSubKey(RegistrySubKey))
             {
                 if (registryKey == null)
                 {
@@ -76,7 +78,10 @@ namespace Snowcode.S3BuildPublisher.Client
 
                 clientDetails.AwsAccessKeyId = (string)registryKey.GetValue(AccessKeyIdKeyName);
                 var encrypredPassword = (string)registryKey.GetValue(SecretAccessKeyKeyName);
-                clientDetails.AwsSecretAccessKey = EncryptionHelper.Decrypt(containerName, encrypredPassword);
+				if (string.IsNullOrEmpty(encrypredPassword.Trim()))
+					throw new Exception("Missing password");
+
+				clientDetails.AwsSecretAccessKey = EncryptionHelper.Decrypt(containerName, encrypredPassword);
 
                 return clientDetails;
             }
@@ -88,11 +93,11 @@ namespace Snowcode.S3BuildPublisher.Client
         /// <returns></returns>
         private void CreateSubKeyIfNotExists()
         {
-            RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistrySubKey);
+            RegistryKey key = Key.OpenSubKey(RegistrySubKey);
 
             if (key == null)
             {
-                Registry.CurrentUser.CreateSubKey(RegistrySubKey);
+                Key.CreateSubKey(RegistrySubKey);
             }
         }
     }

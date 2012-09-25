@@ -39,7 +39,8 @@ namespace Snowcode.S3BuildPublisher.Client
             }
             catch (Exception ex)
             {
-                Log.LogErrorFromException(ex);
+				Console.WriteLine(ex.ToString());
+				Log.LogErrorFromException(ex);
                 return false;
             }
         }
